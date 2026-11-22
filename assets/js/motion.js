@@ -145,37 +145,53 @@
         gsap.fromTo(p.querySelector(".rt-media img"), { xPercent: -6 }, { xPercent: 6, ease: "none", scrollTrigger: { trigger: p, containerAnimation: slide, start: "left right", end: "right left", scrub: true } });
       });
     } else {
-      // phones: a pinned full-screen deck. Each card sweeps up over the last; the one behind tilts back
-      // into depth and darkens; the incoming photo zooms and drifts into place; its copy rises in after it.
-      routes.classList.add("is-deck");
+      // phones: no pinning, the page always scrolls freely. The cards are a native sideways swipe carousel;
+      // the card's position in the strip drives its look (centre = full size and bright, sides = smaller,
+      // angled and darker, photos drift with the swipe). Transform/opacity only.
+      routes.classList.add("is-swipe");
       var count = routes.querySelector("[data-routes-i]");
-      var copies = panels.map(function (p) { return p.querySelector(".rt-copy"); });
       var photos = panels.map(function (p) { return p.querySelector(".rt-media img"); });
       var dims = panels.map(function (p) { return p.querySelector(".rt-dim"); });
-      panels.forEach(function (p, i) { if (i) gsap.set(p, { yPercent: 108 }); });
-      gsap.set(copies.slice(1), { y: 50, autoAlpha: 0 });
-      gsap.set(photos.slice(1), { scale: 1.4, yPercent: -12 });
-      // the first card makes an entrance as the section arrives
-      gsap.fromTo(photos[0], { scale: 1.35 }, { scale: 1, ease: "none", scrollTrigger: { trigger: routes, start: "top bottom", end: "top top", scrub: true } });
-      gsap.fromTo(panels[0], { rotateX: -14, scale: 0.9 }, { rotateX: 0, scale: 1, ease: "none", scrollTrigger: { trigger: routes, start: "top 90%", end: "top 15%", scrub: true } });
-      var deck = gsap.timeline({
-        defaults: { ease: "none" },
-        scrollTrigger: {
-          trigger: routes, start: "top top", pin: true, scrub: 0.5, anticipatePin: 1,
-          end: function () { return "+=" + Math.round(innerHeight * 0.85 * (panels.length - 1)); },
-          onUpdate: function (self) { if (count) count.textContent = "0" + Math.min(panels.length, Math.round(self.progress * (panels.length - 1)) + 1); },
-          onToggle: function (self) { document.body.classList.toggle("in-hero", self.isActive); } // tuck the call bar away while the deck is on screen
+      var dots = document.createElement("div");
+      dots.className = "rt-dots";
+      dots.innerHTML = panels.map(function (p, i) { return '<button type="button" aria-label="Show ' + p.querySelector("h3").textContent + '"' + (i ? "" : ' aria-current="true"') + "></button>"; }).join("");
+      track.after(dots);
+      var dotBtns = $$("button", dots), active = 0, ticking = false;
+      var look = function () {
+        ticking = false;
+        var mid = track.scrollLeft + track.clientWidth / 2, best = 0, bestD = 1e9;
+        panels.forEach(function (p, i) {
+          var c = p.offsetLeft + p.offsetWidth / 2, d = (c - mid) / p.offsetWidth; // -1 .. 0 .. 1 cards away
+          var a = Math.min(1, Math.abs(d));
+          p.style.transform = "scale(" + (1 - 0.08 * a) + ") rotateY(" + (-d * 10) + "deg)";
+          photos[i].style.transform = "translate3d(" + (-d * 18) + "%,0,0) scale(1.15)";
+          dims[i].style.opacity = (0.55 * a).toFixed(3);
+          if (Math.abs(d) < bestD) { bestD = Math.abs(d); best = i; }
+        });
+        if (best !== active) {
+          active = best;
+          if (count) count.textContent = "0" + (best + 1);
+          dotBtns.forEach(function (b, i) { b.setAttribute("aria-current", i === best ? "true" : "false"); });
         }
-      });
-      for (var k = 1; k < panels.length; k++) {
-        var at = k - 1;
-        deck.to(panels[k], { yPercent: 0, duration: 1, ease: "power2.out" }, at)
-            .to(photos[k], { scale: 1, yPercent: 0, duration: 1 }, at)
-            .to(panels[k - 1], { scale: 0.86, rotateX: 18, yPercent: -6, duration: 1 }, at)
-            .to(dims[k - 1], { opacity: 0.7, duration: 1 }, at)
-            .to(copies[k - 1], { autoAlpha: 0, y: -30, duration: 0.5 }, at)
-            .to(copies[k], { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out" }, at + 0.55);
-      }
+      };
+      track.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(look); } }, { passive: true });
+      addEventListener("resize", look);
+      dotBtns.forEach(function (b, i) { b.addEventListener("click", function () { track.scrollTo({ left: panels[i].offsetLeft - (track.clientWidth - panels[i].offsetWidth) / 2, behavior: "smooth" }); }); });
+      look();
+      // entrance: cards glide in from the right, then the strip gives one small nudge so it's obvious it swipes
+      gsap.set(panels, { autoAlpha: 0, x: 80 });
+      ST.create({ trigger: routes, start: "top 75%", once: true, onEnter: function () {
+        gsap.to(panels, { autoAlpha: 1, x: 0, duration: 0.9, ease: EASE, stagger: 0.12, clearProps: "x,visibility,opacity", onComplete: function () {
+          look();
+          if (track.scrollLeft > 4) return; // they've already swiped: no hint needed
+          var o = { v: 0 };
+          track.style.scrollSnapType = "none";
+          gsap.to(o, { v: 1, duration: 0.9, ease: "power2.inOut", yoyo: true, repeat: 1, delay: 0.25,
+            onUpdate: function () { track.scrollLeft = o.v * panels[0].offsetWidth * 0.18; },
+            onComplete: function () { track.style.scrollSnapType = ""; } });
+          track.addEventListener("touchstart", function () { gsap.killTweensOf(o); track.style.scrollSnapType = ""; }, { once: true, passive: true });
+        } });
+      } });
     }
   }
 

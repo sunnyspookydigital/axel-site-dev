@@ -682,20 +682,21 @@ html:not(.motion) .why-list b { color: var(--ink); }
 .readbar { position: fixed; left: 0; right: 0; top: 0; height: 3px; z-index: 300; background: var(--orange); transform-origin: 0 50%; transform: scaleX(0); pointer-events: none; }
 
 
-/* ---------- phones: Our Qualifications as a pinned full-screen deck ---------- */
+/* ---------- phones: Our Qualifications as a swipe carousel (the page itself never pins) ---------- */
 @media (max-width: 899px) {
-  .routes.is-deck { padding-block: 0; }
-  .routes.is-deck .routes-pin { height: 100svh; display: flex; flex-direction: column; padding-block: calc(68px + 12px) 18px; }
-  .routes.is-deck .routes-head { margin-bottom: 18px; align-items: flex-end; }
-  .routes.is-deck .routes-head h2 { font-size: 1.9rem; }
-  .routes.is-deck .routes-head p { font-size: .95rem; }
-  .routes.is-deck .routes-count { display: block; }
-  .routes.is-deck .routes-count b { font-size: 2rem; }
-  .routes.is-deck .routes-track { position: relative; flex: 1; min-height: 0; display: block; perspective: 1100px; align-self: stretch; width: auto; max-width: none; margin: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); padding: 0; }
-  .routes.is-deck .routes-count { white-space: nowrap; }
-  .routes.is-deck .rt { position: absolute; inset: 0; aspect-ratio: auto; height: auto; margin: 0; transform-origin: 50% 0; will-change: transform; box-shadow: 0 -18px 40px -16px rgba(0,0,0,.7); }
-  .routes.is-deck .rt-media img { will-change: transform; transform: none; }
-  .routes.is-deck .rt-copy { will-change: transform, opacity; }
-  .routes.is-deck .rt h3 { font-size: 2.6rem; }
+  .routes.is-swipe .routes-head { margin-bottom: 20px; align-items: flex-end; }
+  .routes.is-swipe .routes-count { display: block; white-space: nowrap; }
+  .routes.is-swipe .routes-count b { font-size: 2rem; }
+  .routes.is-swipe .routes-track { display: flex; gap: 0; max-width: none; margin: 0; padding: 6px 8% 10px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none; perspective: 1000px; -webkit-overflow-scrolling: touch; }
+  .routes.is-swipe .routes-track::-webkit-scrollbar { display: none; }
+  .routes.is-swipe .rt { flex: 0 0 84%; aspect-ratio: auto; height: min(64svh, 500px); scroll-snap-align: center; will-change: transform; margin: 0 -1%; }
+  .routes.is-swipe .rt-media img { will-change: transform; transition: none; }
+  .routes.is-swipe .rt h3 { font-size: 2.5rem; }
+  .rt-dots { display: flex; justify-content: center; gap: 10px; margin-top: 14px; }
+  .rt-dots button { width: 9px; height: 9px; border-radius: 99px; border: 0; padding: 0; background: rgba(255,255,255,.35); transition: width .35s var(--ease), background .35s; }
+  .rt-dots button[aria-current="true"] { width: 28px; background: var(--orange); }
+  .rt-dots button::after { content: ""; position: absolute; inset: -12px -6px; } /* bigger thumb target */
+  .rt-dots button { position: relative; }
 }
+@media (min-width: 900px) { .rt-dots { display: none; } }
 [hidden] { display: none !important; }

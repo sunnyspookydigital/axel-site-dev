@@ -144,55 +144,8 @@
       panels.forEach(function (p) {
         gsap.fromTo(p.querySelector(".rt-media img"), { xPercent: -6 }, { xPercent: 6, ease: "none", scrollTrigger: { trigger: p, containerAnimation: slide, start: "left right", end: "right left", scrub: true } });
       });
-    } else {
-      // phones: no pinning, the page always scrolls freely. The cards are a native sideways swipe carousel;
-      // the card's position in the strip drives its look (centre = full size and bright, sides = smaller,
-      // angled and darker, photos drift with the swipe). Transform/opacity only.
-      routes.classList.add("is-swipe");
-      var count = routes.querySelector("[data-routes-i]");
-      var photos = panels.map(function (p) { return p.querySelector(".rt-media img"); });
-      var dims = panels.map(function (p) { return p.querySelector(".rt-dim"); });
-      var dots = document.createElement("div");
-      dots.className = "rt-dots";
-      dots.innerHTML = panels.map(function (p, i) { return '<button type="button" aria-label="Show ' + p.querySelector("h3").textContent + '"' + (i ? "" : ' aria-current="true"') + "></button>"; }).join("");
-      track.after(dots);
-      var dotBtns = $$("button", dots), active = 0, ticking = false;
-      var look = function () {
-        ticking = false;
-        var mid = track.scrollLeft + track.clientWidth / 2, best = 0, bestD = 1e9;
-        panels.forEach(function (p, i) {
-          var c = p.offsetLeft + p.offsetWidth / 2, d = (c - mid) / p.offsetWidth; // -1 .. 0 .. 1 cards away
-          var a = Math.min(1, Math.abs(d));
-          p.style.transform = "scale(" + (1 - 0.08 * a) + ") rotateY(" + (-d * 10) + "deg)";
-          photos[i].style.transform = "translate3d(" + (-d * 18) + "%,0,0) scale(1.15)";
-          dims[i].style.opacity = (0.55 * a).toFixed(3);
-          if (Math.abs(d) < bestD) { bestD = Math.abs(d); best = i; }
-        });
-        if (best !== active) {
-          active = best;
-          if (count) count.textContent = "0" + (best + 1);
-          dotBtns.forEach(function (b, i) { b.setAttribute("aria-current", i === best ? "true" : "false"); });
-        }
-      };
-      track.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(look); } }, { passive: true });
-      addEventListener("resize", look);
-      dotBtns.forEach(function (b, i) { b.addEventListener("click", function () { track.scrollTo({ left: panels[i].offsetLeft - (track.clientWidth - panels[i].offsetWidth) / 2, behavior: "smooth" }); }); });
-      look();
-      // entrance: cards glide in from the right, then the strip gives one small nudge so it's obvious it swipes
-      gsap.set(panels, { autoAlpha: 0, x: 80 });
-      ST.create({ trigger: routes, start: "top 75%", once: true, onEnter: function () {
-        gsap.to(panels, { autoAlpha: 1, x: 0, duration: 0.9, ease: EASE, stagger: 0.12, clearProps: "x,visibility,opacity", onComplete: function () {
-          look();
-          if (track.scrollLeft > 4) return; // they've already swiped: no hint needed
-          var o = { v: 0 };
-          track.style.scrollSnapType = "none";
-          gsap.to(o, { v: 1, duration: 0.9, ease: "power2.inOut", yoyo: true, repeat: 1, delay: 0.25,
-            onUpdate: function () { track.scrollLeft = o.v * panels[0].offsetWidth * 0.18; },
-            onComplete: function () { track.style.scrollSnapType = ""; } });
-          track.addEventListener("touchstart", function () { gsap.killTweensOf(o); track.style.scrollSnapType = ""; }, { once: true, passive: true });
-        } });
-      } });
     }
+    // phones: a plain list of cards. No pinning, swiping or scroll-driven motion: the page just scrolls.
   }
 
   /* ---------- contact band: framed photo opens to full screen as you arrive (bookends the hero) ---------- */

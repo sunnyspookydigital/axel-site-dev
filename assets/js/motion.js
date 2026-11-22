@@ -48,24 +48,33 @@
       var k = i; while (k > 0 && !loaded[k]) k--;   // nearest frame that has arrived
       if (!loaded[k] || k === current) return;
       current = k;
-      var img = frames[k], s = Math.max(W / img.naturalWidth, H / img.naturalHeight);
-      var dw = img.naturalWidth * s, dh = img.naturalHeight * s;
+      var img = frames[k], iw = img.width || img.naturalWidth, ih = img.height || img.naturalHeight;
+      var s = Math.max(W / iw, H / ih), dw = iw * s, dh = ih * s;
       ctx.drawImage(img, (W - dw) * (desktop ? 0.62 : 0.5), (H - dh) / 2, dw, dh);
     };
     var size = function () {
       var r = pin.getBoundingClientRect();
       if (lastW && Math.abs(r.width - lastW) < 2) return; // ignore height-only changes (phone toolbars)
       lastW = r.width;
-      var dpr = Math.min(window.devicePixelRatio || 1, desktop ? 1.5 : 2);
+      var dpr = Math.min(window.devicePixelRatio || 1, 1.5);   // fewer pixels to fill per frame on dense phone screens
       W = Math.round(r.width * dpr); H = Math.round(r.height * dpr);
       canvas.width = W; canvas.height = H; current = -1; draw(want);
+    };
+    var ready = function (i, pic) {
+      frames[i] = pic; loaded[i] = true;
+      if (i === 0 || i <= want) { current = -1; draw(want); }
+      if (i === 0) canvas.classList.add("ready");
     };
     var load = function (i) {
       var img = new Image();
       img.decoding = "async";
-      img.onload = function () { loaded[i] = true; if (i === 0 || i <= want) { current = -1; draw(want); } if (i === 0) canvas.classList.add("ready"); };
+      img.onload = function () {
+        // decode off the main thread so no frame stalls the scroll the first time it's shown
+        if (window.createImageBitmap) createImageBitmap(img).then(function (bmp) { ready(i, bmp); }, function () { ready(i, img); });
+        else if (img.decode) img.decode().then(function () { ready(i, img); }, function () { ready(i, img); });
+        else ready(i, img);
+      };
       img.src = base + String(i + 1).padStart(3, "0") + ".webp";
-      frames[i] = img;
     };
     load(0);
     var later = window.requestIdleCallback ? function (f) { window.requestIdleCallback(f, { timeout: 800 }); } : function (f) { setTimeout(f, 300); };
@@ -87,8 +96,11 @@
       trust.style.opacity = t;
     };
     paint(0);
-    ST.create({ trigger: stage, start: "top top", end: "bottom bottom", scrub: true, onUpdate: function (self) { paint(self.progress); },
-      onToggle: function (self) { document.body.classList.toggle("in-hero", self.isActive); } });
+    // phones get a short glide on top of the finger so the film flows instead of stepping frame to frame
+    var hero = { p: 0 };
+    gsap.to(hero, { p: 1, ease: "none", onUpdate: function () { paint(hero.p); },
+      scrollTrigger: { trigger: stage, start: "top top", end: "bottom bottom", scrub: desktop ? true : 0.45,
+        onToggle: function (self) { document.body.classList.toggle("in-hero", self.isActive); } } });
     document.body.classList.add("in-hero");
 
     $$("[data-count]", stage).forEach(function (el) {
@@ -101,7 +113,7 @@
   }
 
   /* ---------- headings: words rise out of a mask, same feel as the hero ---------- */
-  $$(".head h2, .page-head h1, .course-head h1, .enquire h2, .enquire h1").forEach(function (h) {
+  $$(".head h2, .page-head h1, .course-head h1, .enquire h2, .enquire h1, .csec h2, .two h3").forEach(function (h) {
     if (h.children.length) return;
     var text = h.textContent.trim();
     h.setAttribute("aria-label", text);
@@ -133,15 +145,37 @@
         gsap.fromTo(p.querySelector(".rt-media img"), { xPercent: -6 }, { xPercent: 6, ease: "none", scrollTrigger: { trigger: p, containerAnimation: slide, start: "left right", end: "right left", scrub: true } });
       });
     } else {
-      // phones: the panels stick and stack; each one sinks back as the next slides over it
-      routes.classList.add("is-stack");
-      panels.forEach(function (p, i) {
-        p.style.setProperty("--i", i);
-        var next = panels[i + 1];
-        if (!next) return;
-        var tl = gsap.timeline({ scrollTrigger: { trigger: next, start: "top bottom", end: "top " + (NAV + 16 + (i + 1) * 14) + "px", scrub: true } });
-        tl.to(p, { scale: 0.9, ease: "none" }, 0).to(p.querySelector(".rt-dim"), { opacity: 0.55, ease: "none" }, 0);
+      // phones: a pinned full-screen deck. Each card sweeps up over the last; the one behind tilts back
+      // into depth and darkens; the incoming photo zooms and drifts into place; its copy rises in after it.
+      routes.classList.add("is-deck");
+      var count = routes.querySelector("[data-routes-i]");
+      var copies = panels.map(function (p) { return p.querySelector(".rt-copy"); });
+      var photos = panels.map(function (p) { return p.querySelector(".rt-media img"); });
+      var dims = panels.map(function (p) { return p.querySelector(".rt-dim"); });
+      panels.forEach(function (p, i) { if (i) gsap.set(p, { yPercent: 108 }); });
+      gsap.set(copies.slice(1), { y: 50, autoAlpha: 0 });
+      gsap.set(photos.slice(1), { scale: 1.4, yPercent: -12 });
+      // the first card makes an entrance as the section arrives
+      gsap.fromTo(photos[0], { scale: 1.35 }, { scale: 1, ease: "none", scrollTrigger: { trigger: routes, start: "top bottom", end: "top top", scrub: true } });
+      gsap.fromTo(panels[0], { rotateX: -14, scale: 0.9 }, { rotateX: 0, scale: 1, ease: "none", scrollTrigger: { trigger: routes, start: "top 90%", end: "top 15%", scrub: true } });
+      var deck = gsap.timeline({
+        defaults: { ease: "none" },
+        scrollTrigger: {
+          trigger: routes, start: "top top", pin: true, scrub: 0.5, anticipatePin: 1,
+          end: function () { return "+=" + Math.round(innerHeight * 0.85 * (panels.length - 1)); },
+          onUpdate: function (self) { if (count) count.textContent = "0" + Math.min(panels.length, Math.round(self.progress * (panels.length - 1)) + 1); },
+          onToggle: function (self) { document.body.classList.toggle("in-hero", self.isActive); } // tuck the call bar away while the deck is on screen
+        }
       });
+      for (var k = 1; k < panels.length; k++) {
+        var at = k - 1;
+        deck.to(panels[k], { yPercent: 0, duration: 1, ease: "power2.out" }, at)
+            .to(photos[k], { scale: 1, yPercent: 0, duration: 1 }, at)
+            .to(panels[k - 1], { scale: 0.86, rotateX: 18, yPercent: -6, duration: 1 }, at)
+            .to(dims[k - 1], { opacity: 0.7, duration: 1 }, at)
+            .to(copies[k - 1], { autoAlpha: 0, y: -30, duration: 0.5 }, at)
+            .to(copies[k], { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out" }, at + 0.55);
+      }
     }
   }
 
@@ -183,6 +217,57 @@
       : { trigger: flip, start: "top 80%", end: "top 25%", scrub: 0.4 };
     gsap.fromTo(flip, { rotateY: 0, rotateX: 10 }, { rotateY: 180, rotateX: 0, ease: "none", scrollTrigger: st });
   });
+
+  /* ---------- The Axel Advantage: each point lights up as it crosses the middle; the photo and counter follow ---------- */
+  $$("[data-adv]").forEach(function (sec) {
+    var items = $$(".why-list > div", sec), imgs = $$(".adv-media img", sec), num = sec.querySelector("[data-adv-n]");
+    var set = function (i) {
+      items.forEach(function (el, k) { el.classList.toggle("active", k === i); });
+      imgs.forEach(function (im, k) { im.classList.toggle("on", k === i); });
+      if (num) num.textContent = "0" + (i + 1);
+    };
+    set(0);
+    items.forEach(function (el, i) {
+      ST.create({ trigger: el, start: "top 62%", end: "bottom 62%", onToggle: function (self) { if (self.isActive) set(i); } });
+    });
+  });
+
+  /* ---------- paragraphs ink in word by word as you read ---------- */
+  $$("[data-ink], .csec:first-child .prose > p:first-child").forEach(function (p) {
+    if (p.children.length) return;
+    var words = p.textContent.trim().split(/\s+/);
+    p.innerHTML = words.map(function (w) { return '<span class="iw">' + w.replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }) + "</span>"; }).join(" ");
+    p.classList.add("ink");
+    gsap.to($$(".iw", p), { opacity: 1, ease: "none", stagger: 0.08, scrollTrigger: { trigger: p, start: "top 88%", end: desktop ? "top 55%" : "top 45%", scrub: true } });
+  });
+
+  /* ---------- reviews: quote mark swings in, stars pop one by one ---------- */
+  $$(".review").forEach(function (r) {
+    var q = r.querySelector(".qmark"), stars = $$(".stars svg", r);
+    gsap.set(stars, { scale: 0 });
+    if (q) gsap.set(q, { scale: 0.4, rotate: -18, opacity: 0 });
+    ST.create({ trigger: r, start: "top 85%", once: true, onEnter: function () {
+      gsap.to(stars, { scale: 1, duration: 0.5, ease: "back.out(3)", stagger: 0.07, delay: 0.15 });
+      if (q) gsap.to(q, { scale: 1, rotate: 0, opacity: 0.18, duration: 0.9, ease: EASE });
+    } });
+  });
+
+  /* ---------- course pages: bullets rise in with their ticks popping; reading bar along the top ---------- */
+  $$(".csec .prose ul").forEach(function (ul) {
+    var lis = $$(":scope > li", ul);
+    gsap.set(lis, { autoAlpha: 0, y: 16 });
+    ST.batch(lis, { start: "top 92%", once: true, onEnter: function (els) {
+      els.forEach(function (li, k) { setTimeout(function () { li.classList.add("pop"); }, k * 70 + 120); });
+      gsap.to(els, { autoAlpha: 1, y: 0, duration: 0.6, ease: EASE, stagger: 0.07, clearProps: "transform" });
+    } });
+  });
+  var body = document.querySelector(".course-body");
+  if (body) {
+    var bar = document.createElement("div");
+    bar.className = "readbar"; bar.setAttribute("aria-hidden", "true");
+    document.body.appendChild(bar);
+    ST.create({ trigger: body, start: "top 20%", end: "bottom bottom", onUpdate: function (self) { bar.style.transform = "scaleX(" + self.progress.toFixed(4) + ")"; } });
+  }
 
   /* ---------- gentle parallax on big photos ---------- */
   $$("[data-parallax]").forEach(function (box) {

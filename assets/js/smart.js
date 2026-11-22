@@ -124,6 +124,26 @@
     if (lvl) $$("select[name=level]").forEach(function (s) { s.value = lvl; });
   } catch (e) {}
 
+  /* ---------- phones: a touch that scrolls (or stops a scroll) must never count as a tap ---------- */
+  var lastScroll = 0, moved = false, sx = 0, sy = 0, touching = false;
+  addEventListener("scroll", function () { lastScroll = performance.now(); }, { passive: true });
+  addEventListener("touchstart", function (e) {
+    var t = e.touches[0]; touching = true; moved = false; sx = t.clientX; sy = t.clientY;
+    // a finger landing while the page is still gliding is a "stop", not a tap
+    if (performance.now() - lastScroll < 140) moved = true;
+  }, { passive: true, capture: true });
+  addEventListener("touchmove", function (e) {
+    var t = e.touches[0];
+    if (Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8) moved = true;
+  }, { passive: true, capture: true });
+  addEventListener("touchend", function () { touching = false; }, { passive: true, capture: true });
+  document.addEventListener("click", function (e) {
+    if (!moved) return;
+    var hit = e.target.closest && e.target.closest("a, button, summary, label, [role=button]");
+    if (hit) { e.preventDefault(); e.stopPropagation(); }
+    moved = false;
+  }, true);
+
   /* ---------- header: tuck away on the way down, back on the way up ---------- */
   var nav = $(".nav"), lastY = window.scrollY, ticking = false;
   if (nav) addEventListener("scroll", function () {

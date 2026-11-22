@@ -12,6 +12,20 @@
 
   var stage = document.querySelector(".stage");
   var video = stage && stage.querySelector(".stage-video");
+  // pick the right film: every-frame-seekable for desktop scrubbing, light loop for phones
+  if (video) {
+    video.muted = true;
+    video.preload = "auto";
+    if (desktop && !reduced && window.fetch && window.URL) {
+      // load the whole film into memory so every frame can be sought instantly, on any host
+      fetch(video.dataset.desk).then(function (r) { if (!r.ok) throw 0; return r.blob(); })
+        .then(function (b) { video.src = URL.createObjectURL(b); video.load(); })
+        .catch(function () { video.src = video.dataset.desk; video.load(); });
+    } else {
+      video.src = video.dataset.mobile;
+      video.load();
+    }
+  }
 
   // Without GSAP or with reduced motion: show everything, let the film loop quietly.
   if (!window.gsap || !window.ScrollTrigger || reduced) {

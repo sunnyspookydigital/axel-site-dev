@@ -63,7 +63,7 @@ h1, h2, h3, h4 { font-family: var(--f-head); color: var(--ink); font-weight: 700
   .nav .wrap { gap: 10px; min-height: 68px; }
   .burger { display: grid; }
   .nav-right .btn { display: none; }
-  .nav-links { position: fixed; inset: calc(68px + env(safe-area-inset-top, 0px)) 0 auto 0; flex-direction: column; align-items: stretch; gap: 0; background: var(--white); border-bottom: 1px solid var(--line); padding: 8px max(20px, env(safe-area-inset-right, 0px)) 20px max(20px, env(safe-area-inset-left, 0px)); box-shadow: 0 20px 40px -20px rgba(13,27,42,.3); display: none; }
+  .nav-links { position: fixed; inset: calc(68px + env(safe-area-inset-top, 0px)) 0 auto 0; flex-direction: column; align-items: stretch; gap: 0; background: var(--white); border-bottom: 1px solid var(--line); padding: 8px max(20px, env(safe-area-inset-right, 0px)) 20px max(20px, env(safe-area-inset-left, 0px)); box-shadow: 0 20px 40px -20px rgba(13,27,42,.3); }
   .nav.open .nav-links { display: flex; }
   .nav-links a { padding: 14px 4px; font-size: 1.1rem; border-radius: 0; border-bottom: 1px solid var(--line); }
   .nav-links a:hover { background: none; }
@@ -563,5 +563,77 @@ button.link { background: none; border: 0; font: 600 1rem var(--f-body); cursor:
 .wsplit .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .08em; margin-bottom: -.08em; }
 .wsplit .w > span { display: inline-block; will-change: transform; }
 
-[hidden] { display: none !important; }
 .routes .head p { color: #9fb0c2; }
+
+/* ---------- hero: orange underline draws under "craft." ---------- */
+.stage h1 .mark { font-style: normal; position: relative; color: inherit; }
+.stage h1 .mark::after { content: ""; position: absolute; left: 0; right: .2em; bottom: .1em; height: .085em; border-radius: 3px; background: var(--orange); transform: scaleX(0); transform-origin: left; animation: drawLine .9s .75s var(--ease) forwards; }
+@keyframes drawLine { to { transform: scaleX(1); } }
+
+/* ---------- course cards: original "View course details" prompt ---------- */
+.ccard .more { display: inline-block; margin-top: 6px; font-size: .88rem; font-weight: 600; color: var(--blue); }
+.csec-cta { padding-top: 28px; }
+.rt-dim { position: absolute; inset: 0; z-index: -1; background: #0a121c; opacity: 0; pointer-events: none; }
+
+/* ---------- phones ---------- */
+@media (max-width: 899px) {
+  /* hero: headline on top, the film opens from a card underneath it */
+  .stage.is-scroll { height: 185svh; }
+  .stage.is-scroll .stage-pin { position: sticky; top: 0; height: 100svh; min-height: 0; }
+  .stage.is-scroll .stage-copy { align-self: start; padding-top: calc(68px + 22px); padding-bottom: 0; }
+  .stage.is-scroll .stage-shade { background: linear-gradient(180deg, rgba(10,18,28,.94) 0%, rgba(10,18,28,.75) 42%, rgba(10,18,28,.15) 68%, rgba(10,18,28,.85) 100%); }
+  .stage.is-scroll .stage-trust { position: absolute; background: none; border-top-color: rgba(255,255,255,.18); }
+  .stage.is-scroll .scroll-cue { display: none; }
+  .stage h1 { font-size: clamp(2.2rem, 10.5vw, 3rem); }
+  .stage .kicker { margin-bottom: 12px; font-size: .8rem; }
+  .stage .lead { font-size: 1rem; margin-top: 12px; }
+  .stage .ctas { margin-top: 20px; gap: 10px; flex-wrap: nowrap; }
+  .stage .ctas .btn { min-height: 46px; padding: 0 16px; font-size: .95rem; }
+  .stage-trust .wrap { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stage-trust .wrap > div { padding: 16px 0 calc(16px + env(safe-area-inset-bottom, 0px)); border-top: 0 !important; }
+  .stage-trust b { font-size: 1.5rem; }
+  .stage-trust span { font-size: .75rem; }
+
+  /* Our Qualifications: cards stick and stack as you scroll */
+  .routes.is-stack .routes-track { display: block; }
+  .routes.is-stack .rt { position: sticky; top: calc(84px + var(--i, 0) * 14px); aspect-ratio: auto; height: min(66svh, 520px); margin-bottom: 18px; transform-origin: 50% 0; will-change: transform; box-shadow: 0 -12px 30px -12px rgba(0,0,0,.6); }
+  .routes.is-stack .rt:last-child { margin-bottom: 0; }
+
+  /* full-screen menu with links cascading in */
+  .nav-links { display: flex !important; inset: calc(68px + env(safe-area-inset-top, 0px)) 0 0 0; height: auto; background: var(--ink); border: 0; box-shadow: none; padding: 20px max(24px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px)); visibility: hidden; opacity: 0; transition: opacity .3s var(--ease), visibility 0s .3s; }
+  .nav.open .nav-links { visibility: visible; opacity: 1; transition: opacity .3s var(--ease); }
+  .nav-links a { color: #fff; font-family: var(--f-head); font-weight: 700; font-size: clamp(1.8rem, 8vw, 2.4rem); letter-spacing: -0.02em; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,.1); transform: translateY(18px); opacity: 0; transition: transform .55s var(--ease), opacity .55s var(--ease); }
+  .nav-links a[aria-current="page"] { color: var(--orange); }
+  .nav.open .nav-links a { transform: none; opacity: 1; }
+  .nav.open .nav-links a:nth-child(1) { transition-delay: .04s; }
+  .nav.open .nav-links a:nth-child(2) { transition-delay: .09s; }
+  .nav.open .nav-links a:nth-child(3) { transition-delay: .14s; }
+  .nav.open .nav-links a:nth-child(4) { transition-delay: .19s; }
+  .nav.open .nav-links a:nth-child(5) { transition-delay: .24s; }
+  .nav .mob-only { margin-top: 28px; justify-content: center; font-family: var(--f-body); font-size: 1.05rem; letter-spacing: 0; border: 0; padding: 0 22px; min-height: 54px; }
+  .nav.open { background: var(--ink); border-bottom-color: rgba(255,255,255,.1); }
+  .nav.open .brand span, .nav.open .nav-phone, .nav.open .icon-btn { color: #fff; }
+  .nav.open .icon-btn, .nav.open .nav-phone { background: transparent; border-color: rgba(255,255,255,.25); }
+  .menu-open { overflow: hidden; }
+
+  /* route card flips in place above the steps */
+  .route-card { display: grid; justify-items: center; margin-bottom: 8px; }
+}
+
+/* touch: everything you can tap gives a little under the thumb */
+@media (hover: none) {
+  .btn, .cf-tile, .rt, .save, .icon-btn, .sl-pill { transition: transform .18s var(--ease), background .2s, border-color .2s; }
+  .btn:active, .cf-tile:active, .icon-btn:active, .sl-pill:active { transform: scale(.96); }
+  .rt:active { transform: scale(.985); }
+  .ccard-link:active .img img { transform: scale(.97); transition-duration: .18s; }
+  .ccard .go { display: none; }
+}
+
+
+@media (max-width: 899px) {
+  .stage .ctas .call { width: 46px; padding: 0; flex: none; }
+  .stage .ctas .call .num { display: none; }
+  .menu-open .sl-pill, .in-hero .mbar, .in-hero .sl-pill { transform: translateY(140%); opacity: 0; pointer-events: none; }
+  .sl-pill { transition: transform .35s var(--ease), opacity .35s; }
+}
+[hidden] { display: none !important; }

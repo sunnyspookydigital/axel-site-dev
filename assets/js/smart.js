@@ -33,7 +33,7 @@
   }
   function toggle(slug, btn) {
     if (has(slug)) list.splice(list.indexOf(slug), 1);
-    else { list.push(slug); track("shortlist_add", { course: slug }); }
+    else { list.push(slug); track("shortlist_add", { course: slug }); try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {} }
     persist(); render();
     if (btn && !reduced) { btn.classList.remove("pop"); void btn.offsetWidth; btn.classList.add("pop"); }
     if (pill && !reduced) { pill.classList.remove("bump"); void pill.offsetWidth; pill.classList.add("bump"); }

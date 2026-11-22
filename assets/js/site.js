@@ -47,7 +47,7 @@
     q.addEventListener("input", function () {
       var words = (q.value || "").trim().toLowerCase().split(/\s+/).filter(Boolean), n = 0;
       cards.forEach(function (c) {
-        var ok = words.every(function (w) { return c.dataset.search.indexOf(w) > -1; });
+        var ok = words.every(function (w) { return c.dataset.q.indexOf(w) > -1; });
         c.classList.toggle("hide", !ok);
         if (ok) { n++; c.style.opacity = 1; c.style.visibility = "visible"; c.style.transform = "none"; }
       });
@@ -128,6 +128,8 @@
       var fd = new FormData(form), extra = [];
       if (fd.get("course")) extra.push("Course: " + fd.get("course"));
       if (fd.get("level")) extra.push("Experience: " + fd.get("level"));
+      var sl = window.AxelShortlist ? window.AxelShortlist.items() : [];
+      if (sl.length) extra.push("Shortlist: " + sl.join("; "));
       extra.push("Page: " + document.title);
       var payload = {
         name: String(fd.get("name") || "").trim(), email: String(fd.get("email") || "").trim(), phone: String(fd.get("phone") || "").trim(),
@@ -139,7 +141,8 @@
         : fetch(CFG.formEndpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       send.then(function (r) { if (!r.ok) throw new Error("server"); })
         .then(function () {
-          track("generate_lead", { form: form.dataset.enquiry, course: fd.get("course") || "" });
+          track("generate_lead", { form: form.dataset.enquiry, course: fd.get("course") || "", shortlist: sl.length });
+          if (window.AxelShortlist) window.AxelShortlist.clear();
           form.innerHTML = '<div class="form-success"><div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h3>Enquiry received</h3><p>Thanks ' + esc(payload.name.split(" ")[0]) + ', your enquiry has been submitted successfully. An advisor will be in touch shortly.</p></div>';
         })
         .catch(function () {
